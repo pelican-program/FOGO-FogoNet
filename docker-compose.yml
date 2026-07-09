@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  fogo:
+    build: .
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./datasets:/app/datasets
+      - ./results:/app/results
+    stdin_open: true
+    tty: true
