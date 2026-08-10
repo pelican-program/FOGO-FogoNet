@@ -29,13 +29,18 @@ def train(max_epochs, device, model, optimizer, criterion, train_loader, val_loa
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            outputs, aux_outputs = model(inputs)
-            loss = criterion(outputs, labels) + 0.4 * criterion(aux_outputs, labels)
+            result = model(inputs)
+            if isinstance(result, tuple):
+                outputs, aux_outputs = result
+                loss = criterion(outputs, labels) + 0.4 * criterion(aux_outputs, labels)
+            else:
+                outputs = result.logits if hasattr(result, 'logits') else result
+                loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
+
         avg_loss = running_loss / len(train_loader)
-        # Fiz assim pra mensagem aparecer logo de uma vez, já que evaluate_model tem um delayzinho.
         epoch_summary = f"Epoch {epoch + 1}/{max_epochs} - Loss: {avg_loss:.4f},"
         accuracy, all_preds, all_labels = evaluate_model(model, val_loader, device)
         epoch_summary += f" Accuracy: {accuracy:.2f}%"
