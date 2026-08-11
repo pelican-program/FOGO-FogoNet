@@ -4,3 +4,7 @@ datasets/*
 results/*
 #Garante que o git ignore o unico arquivo que deve ir pro remote.
 !datasets/SETUP.md
+
+__pycache__/
+*.pyc
+*.pyo
