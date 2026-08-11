@@ -80,5 +80,5 @@ class ReportGenerator:
 
         np.savetxt(os.path.join(output_dir, f"{save_name}.csv"),
                    cm, delimiter=",", fmt="%d")
-        print(f'Matriz de confusão salva em {Path(output_dir).joinpath(save_name + '.png').absolute()}')
+        print(f'Matriz de confusão salva em {Path(output_dir).joinpath(save_name + ".png").absolute()}')
 
