@@ -9,3 +9,6 @@ __pycache__/
 *.pyc
 *.pyo
 /results
+
+mlflow.db
+mlruns/

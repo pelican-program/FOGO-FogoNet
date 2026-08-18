@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import mlflow
 from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
 
 from core.Entities import evaluate_model
@@ -14,25 +15,56 @@ class ReportGenerator:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
+     
+        parts = Path(output_dir).parts
+        self.dataset_name = parts[-2] if len(parts) >= 2 else "desconhecido"
+        self.model_name = parts[-1] if len(parts) >= 1 else "desconhecido"
+
+        mlflow.set_tracking_uri("sqlite:///C:/mlflow_data/mlflow.db")
+        mlflow.set_experiment(f"FOGO-FogoNet")
+        self.run = mlflow.start_run(run_name=f"{self.dataset_name}/{self.model_name}")
+        mlflow.set_tag("dataset", self.dataset_name)
+        mlflow.set_tag("model", self.model_name)
+
     def summary(self, name, model, val_loader, device, save_model=False):
         txt_header = f'{"-"*15} Avaliação de modelo - {name}{"-"*15}'
         print(txt_header)
-        # TODO: Talvez tirar acentuação?
         modelNameDir = name.strip().lower().replace(' ', '_')
         model_output_dir = os.path.join(self.output_dir, modelNameDir)
         os.makedirs(model_output_dir, exist_ok=True)
 
         accuracy, preds, labels = evaluate_model(model, val_loader, device)
+        inference_time = self._measure_inference_time(model, val_loader, device)
+        model_size = self._get_model_size(model, name)
+
         print(f"Acurácia: {accuracy:.2f}%")
-        print(f"Tempo médio por batch: {self._measure_inference_time(model, val_loader, device):.4f}s")
-        print(f"Tamanho: {self._get_model_size(model, name):.2f} MB")
-        self._save_confusion_matrix(name, model_output_dir, labels, preds, val_loader.dataset.classes)
+        print(f"Tempo médio por batch: {inference_time:.4f}s")
+        print(f"Tamanho: {model_size:.2f} MB")
+
+        mlflow.log_metric(f"{modelNameDir}_acuracia", accuracy)
+        mlflow.log_metric(f"{modelNameDir}_tempo_por_batch", inference_time)
+        mlflow.log_metric(f"{modelNameDir}_tamanho_mb", model_size)
+
+        confusion_matrix_path = self._save_confusion_matrix(name, model_output_dir, labels, preds, val_loader.dataset.classes)
+
+    
+        if confusion_matrix_path:
+            mlflow.log_artifact(confusion_matrix_path)
 
         if save_model:
-            save_path = os.path.join(model_output_dir, modelNameDir+ ".pth")
+            save_path = os.path.join(model_output_dir, modelNameDir + ".pth")
             torch.save(model.state_dict(), save_path)
             print(f'Modelo salvo em {Path(save_path).absolute()}')
-        print('-'* len(txt_header))
+            mlflow.log_artifact(save_path)
+
+        print('-' * len(txt_header))
+
+    def __del__(self):
+      
+        try:
+            mlflow.end_run()
+        except:
+            pass
 
     def _measure_inference_time(self, model, data_loader, device):
         model.eval()
@@ -70,7 +102,8 @@ class ReportGenerator:
         plt.figure(figsize=(6, 6))
         disp.plot(cmap=plt.cm.Blues, values_format='d')
         plt.title(f"Matriz de Confusão - {model_name}")
-        plt.savefig(os.path.join(output_dir, f"{save_name}.png"))
+        png_path = os.path.join(output_dir, f"{save_name}.png")
+        plt.savefig(png_path)
         plt.close()
 
         report = classification_report(all_labels, all_preds, target_names=class_names)
@@ -82,3 +115,4 @@ class ReportGenerator:
                    cm, delimiter=",", fmt="%d")
         print(f'Matriz de confusão salva em {Path(output_dir).joinpath(save_name + ".png").absolute()}')
 
+        return png_path
