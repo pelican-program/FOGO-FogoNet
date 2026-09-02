@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
+import numpy as np
 from torchvision import transforms, datasets
-from torch.utils.data import random_split
+from torch.utils.data import Subset
 
 
 class Dataset:
@@ -40,21 +41,26 @@ class Dataset:
         elif transform_model == "googlenet-format":
             pass
 
-        full_dataset = datasets.ImageFolder(
+    
+        full_dataset_train = datasets.ImageFolder(
             self.root_path / self.name,
             transform=self.train_tfms
         )
+        full_dataset_val = datasets.ImageFolder(
+            self.root_path / self.name,
+            transform=self.test_tfms
+        )
 
-
-        total = len(full_dataset)
+        total = len(full_dataset_train)
         train_size = int(total * self.train_split)
-        test_size = total - train_size
 
-        train_data, val_data = random_split(full_dataset, [train_size, test_size])
+        indices = np.random.permutation(total)
+        train_idx, val_idx = indices[:train_size], indices[train_size:]
 
-        val_data.dataset.transform = self.test_tfms
+        train_data = Subset(full_dataset_train, train_idx)
+        val_data = Subset(full_dataset_val, val_idx)
 
-        print(f"Total de imagens: {total} | Treino: {train_size} | Teste: {test_size}")
+        print(f"Total de imagens: {total} | Treino: {len(train_idx)} | Teste: {len(val_idx)}")
 
         return train_data, val_data
 
