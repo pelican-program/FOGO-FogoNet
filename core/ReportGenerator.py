@@ -45,7 +45,9 @@ class ReportGenerator:
         mlflow.log_metric(f"{modelNameDir}_tempo_por_batch", inference_time)
         mlflow.log_metric(f"{modelNameDir}_tamanho_mb", model_size)
 
-        confusion_matrix_path = self._save_confusion_matrix(name, model_output_dir, labels, preds, val_loader.dataset.classes)
+        dataset = val_loader.dataset
+        classes = dataset.dataset.classes if hasattr(dataset, 'dataset') else dataset.classes
+        confusion_matrix_path = self._save_confusion_matrix(name, model_output_dir, labels, preds, classes)
 
     
         if confusion_matrix_path:
