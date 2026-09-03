@@ -97,7 +97,11 @@ class ReportGenerator:
             return 0
 
     def _save_confusion_matrix(self, model_name, output_dir, all_labels, all_preds, class_names):
-        cm = confusion_matrix(all_labels, all_preds)
+        # Força a matriz a sempre considerar todas as classes possíveis (0..N-1),
+        # mesmo que alguma delas não apareça na amostra de validação dessa rodada.
+        labels_idx = list(range(len(class_names)))
+
+        cm = confusion_matrix(all_labels, all_preds, labels=labels_idx)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
 
         save_name = f"matriz_confusao_{model_name.lower().replace(' ', '_')}"
@@ -108,7 +112,12 @@ class ReportGenerator:
         plt.savefig(png_path)
         plt.close()
 
-        report = classification_report(all_labels, all_preds, target_names=class_names)
+        report = classification_report(
+            all_labels, all_preds,
+            labels=labels_idx,
+            target_names=class_names,
+            zero_division=0,
+        )
         with open(os.path.join(output_dir, f"relatorio_{model_name.lower().replace(' ', '_')}.txt"), "w") as f:
             f.write(f"=== {model_name} ===\n")
             f.write(report)

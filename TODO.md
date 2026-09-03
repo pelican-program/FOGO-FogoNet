@@ -1,3 +1,7 @@
 1. Dar upload nos dois datasets atuais e colocar no SETUP.md
 2. Encapsular parte do modelo e da quantização.
 3. Solicitar ao usuario que modelo ele quer usar e outras configs como epocas e etc...
+
+
+4. refinar DatasetsLoader
+5. erro nas pastas 
