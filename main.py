@@ -27,8 +27,8 @@ if __name__ == "__main__":
     train_data, val_data = dataset.get(transform_model='inception-format')
     print('Classes do dataset:', train_data.dataset.class_to_idx)
 
-    train_loader = DataLoader(train_data, batch_size=32, shuffle=True, num_workers=2, pin_memory=False)
-    val_loader = DataLoader(val_data, batch_size=32, shuffle=False, num_workers=2, pin_memory=False)
+    train_loader = DataLoader(train_data, batch_size=8, shuffle=True, num_workers=2, pin_memory=False)
+    val_loader = DataLoader(val_data, batch_size=8, shuffle=False, num_workers=2, pin_memory=False)
 
     model, model_name, criterion, optimizer, train_fn = request_model()
 

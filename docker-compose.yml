@@ -6,6 +6,7 @@ services:
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+    shm_size: '2gb'
     volumes:
       - ./datasets:/app/datasets
       - ./results:/app/results
