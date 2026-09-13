@@ -5,7 +5,7 @@ services:
     build: .
     runtime: nvidia
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
+    - NVIDIA_VISIBLE_DEVICES=all
     shm_size: '2gb'
     volumes:
       - ./datasets:/app/datasets
