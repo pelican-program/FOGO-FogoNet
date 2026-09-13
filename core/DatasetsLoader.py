@@ -9,8 +9,6 @@ from torch.utils.data import Dataset as TorchDataset, Subset
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.bmp', '.webp')
 
-# Remove sequências de escape ANSI (ex: '\x1b[20;1R') que alguns terminais
-# injetam no stdin junto com a resposta do usuário.
 _ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
 
@@ -36,18 +34,10 @@ def _clean_float_input(prompt):
 
 
 class FogoImageDataset(TorchDataset):
-    """
-    Dataset que lê imagens soltas (sem subpastas) de um diretório e define
-    a classe de cada imagem pelo nome do arquivo:
-      - se o nome contém 'no_fire' -> classe 'no_fire'
-      - caso contrário -> classe 'fire'
-    """
-
     def __init__(self, folder_path, transform=None):
         self.folder_path = Path(folder_path)
         self.transform = transform
 
-        # Mantém o mesmo formato que o ImageFolder usava (para compatibilidade com o main.py e ReportGenerator.py)
         self.class_to_idx = {'fire': 0, 'no_fire': 1}
         self.classes = sorted(self.class_to_idx, key=self.class_to_idx.get)
 
@@ -73,10 +63,11 @@ class FogoImageDataset(TorchDataset):
 
 
 class Dataset:
-    def __init__(self, name, root_path, train_split=0.8):
+    def __init__(self, name, root_path, fire_split=0.8, no_fire_split=0.8):
         self.name = name
         self.root_path = Path(root_path)
-        self.train_split = train_split
+        self.fire_split = fire_split
+        self.no_fire_split = no_fire_split
 
         self.train_tfms = None
         self.test_tfms = None
@@ -107,20 +98,33 @@ class Dataset:
         elif transform_model == "googlenet-format":
             pass
 
-        # Dois datasets separados (um por transform) para evitar compartilhar o mesmo objeto
         full_dataset_train = FogoImageDataset(self.root_path / self.name, transform=self.train_tfms)
         full_dataset_val = FogoImageDataset(self.root_path / self.name, transform=self.test_tfms)
 
-        total = len(full_dataset_train)
-        train_size = int(total * self.train_split)
+        fire_idx = [i for i, (_, label) in enumerate(full_dataset_train.samples) if label == 0]
+        no_fire_idx = [i for i, (_, label) in enumerate(full_dataset_train.samples) if label == 1]
 
-        indices = np.random.permutation(total)
-        train_idx, val_idx = indices[:train_size], indices[train_size:]
+        fire_idx = np.random.permutation(fire_idx).astype(int)
+        no_fire_idx = np.random.permutation(no_fire_idx).astype(int)
+
+        fire_train_size = int(len(fire_idx) * self.fire_split)
+        no_fire_train_size = int(len(no_fire_idx) * self.no_fire_split)
+
+        fire_train_idx = fire_idx[:fire_train_size]
+        fire_val_idx = fire_idx[fire_train_size:]
+
+        no_fire_train_idx = no_fire_idx[:no_fire_train_size]
+        no_fire_val_idx = no_fire_idx[no_fire_train_size:]
+
+        train_idx = np.concatenate([fire_train_idx, no_fire_train_idx])
+        val_idx = np.concatenate([fire_val_idx, no_fire_val_idx])
 
         train_data = Subset(full_dataset_train, train_idx)
         val_data = Subset(full_dataset_val, val_idx)
 
-        print(f"Total de imagens: {total} | Treino: {len(train_idx)} | Teste: {len(val_idx)}")
+        print(f"\nFire    — Total: {len(fire_idx)} | Treino: {fire_train_size} | Teste: {len(fire_val_idx)}")
+        print(f"No Fire — Total: {len(no_fire_idx)} | Treino: {no_fire_train_size} | Teste: {len(no_fire_val_idx)}")
+        print(f"Total   — Treino: {len(train_idx)} | Teste: {len(val_idx)}")
 
         return train_data, val_data
 
@@ -157,10 +161,18 @@ def request_dataset(datasets_path):
 
     selected = available_datasets[datasetOpt - 1]
 
-    train_pct = _clean_float_input('Percentual para treino (ex: 0.8 para 80%): ')
-    while not (0 < train_pct < 1):
-        print('Valor inválido. Digite um número entre 0 e 1 (ex: 0.8).')
-        train_pct = _clean_float_input('Percentual para treino (ex: 0.8 para 80%): ')
+    print('\nDefina o percentual de treino para cada classe:')
 
-    selected.train_split = train_pct
+    fire_pct = _clean_float_input('Percentual de treino para fire: ')
+    while not (0 < fire_pct < 1):
+        print('Valor inválido. Digite um número entre 0 e 1.')
+        fire_pct = _clean_float_input('Percentual de treino para fire: ')
+
+    no_fire_pct = _clean_float_input('Percentual de treino para no_fire: ')
+    while not (0 < no_fire_pct < 1):
+        print('Valor inválido. Digite um número entre 0 e 1 (ex: 0.8).')
+        no_fire_pct = _clean_float_input('Percentual de treino para no_fire: ')
+
+    selected.fire_split = fire_pct
+    selected.no_fire_split = no_fire_pct
     return selected
