@@ -45,7 +45,8 @@ class FogoImageDataset(TorchDataset):
         for entry in sorted(os.listdir(self.folder_path)):
             full_path = self.folder_path / entry
             if full_path.is_file() and entry.lower().endswith(IMG_EXTENSIONS):
-                label_name = 'no_fire' if 'no_fire' in entry.lower() else 'fire'
+                name_lower = entry.lower()
+                label_name = 'no_fire' if ('no_fire' in name_lower or 'non_fire' in name_lower or 'nofire' in name_lower) else 'fire'
                 self.samples.append((full_path, self.class_to_idx[label_name]))
 
         if len(self.samples) == 0:
