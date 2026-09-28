@@ -162,17 +162,19 @@ def request_dataset(datasets_path):
 
     selected = available_datasets[datasetOpt - 1]
 
-    print('\nDefina o percentual de treino para cada classe:')
-
-    fire_pct = _clean_float_input('Percentual de treino para fire: ')
-    while not (0 < fire_pct < 1):
-        print('Valor inválido. Digite um número entre 0 e 1.')
-        fire_pct = _clean_float_input('Percentual de treino para fire: ')
-
-    no_fire_pct = _clean_float_input('Percentual de treino para no_fire: ')
-    while not (0 < no_fire_pct < 1):
-        print('Valor inválido. Digite um número entre 0 e 1 (ex: 0.8).')
-        no_fire_pct = _clean_float_input('Percentual de treino para no_fire: ')
+    print('\nDefina o percentual de treino para cada classe')
+    while True:
+        entrada = _clean_input('Percentuais (fire no_fire): ')
+        partes = entrada.replace(',', ' ').split()
+        if len(partes) == 2:
+            try:
+                fire_pct = float(partes[0])
+                no_fire_pct = float(partes[1])
+                if 0 < fire_pct < 1 and 0 < no_fire_pct < 1:
+                    break
+            except ValueError:
+                pass
+        print('Valor inválido. Digite dois números entre 0 e 1, ex: 0.8 0.6')
 
     selected.fire_split = fire_pct
     selected.no_fire_split = no_fire_pct
