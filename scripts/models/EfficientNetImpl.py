@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from torchvision import models
-import torch.quantization as quantization
 
 from core.Entities import evaluate_model
 
@@ -48,48 +47,6 @@ def train(max_epochs, device, model, optimizer, criterion, train_loader, val_loa
 
 
 def static_quantize(model_cpu, val_loader, report_generator):
-    try:
-        model_static = models.efficientnet_b0(pretrained=False)
-        state_dict = torch.hub.load_state_dict_from_url(
-            "https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth",
-            check_hash=False
-        )
-        model_static.load_state_dict(state_dict)
-        model_static.classifier[1] = nn.Linear(model_static.classifier[1].in_features, 2)
-        model_static.load_state_dict(model_cpu.state_dict())
-
-        model_static.eval()
-
-        backends = ['fbgemm', 'qnnpack']
-
-        for backend in backends:
-            try:
-                print(f"Tentando quantização com backend: {backend}")
-                model_static.qconfig = quantization.get_default_qconfig(backend)
-
-                model_static_prepared = quantization.prepare(model_static, inplace=False)
-
-                print("Calibrando modelo com dados de validação...")
-                with torch.no_grad():
-                    for i, (inputs, _) in enumerate(val_loader):
-                        if i >= 10:
-                            break
-                        model_static_prepared(inputs)
-                        if i % 5 == 0:
-                            print(f"Calibração: {i + 1}/10 batches processados")
-
-                model_static_quantized = quantization.convert(model_static_prepared, inplace=False)
-                print(f"Quantização estática aplicada com sucesso usando backend: {backend}!")
-
-                report_generator.summary("Quantizado Estático", model_static_quantized, val_loader, torch.device("cpu"))
-
-                return model_static_quantized
-
-            except Exception as e:
-                print(f"Erro com backend {backend}: {e}")
-                continue
-    except Exception as e:
-        print(f"ERRO na quantização estática: {e}")
-        print("Continuando apenas com quantização dinâmica...")
-
+    print("EfficientNet usa ativacao SiLU (Swish), incompativel com quantizacao estatica nesta versao do PyTorch.")
+    print("Pulando quantizacao estatica.")
     return None
