@@ -11,7 +11,12 @@ def display_name():
 
 
 def init():
-    model = models.efficientnet_b0(pretrained=True)
+    model = models.efficientnet_b0(pretrained=False)
+    state_dict = torch.hub.load_state_dict_from_url(
+        "https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth",
+        check_hash=False
+    )
+    model.load_state_dict(state_dict)
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, 2)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
@@ -44,7 +49,12 @@ def train(max_epochs, device, model, optimizer, criterion, train_loader, val_loa
 
 def static_quantize(model_cpu, val_loader, report_generator):
     try:
-        model_static = models.efficientnet_b0(pretrained=True)
+        model_static = models.efficientnet_b0(pretrained=False)
+        state_dict = torch.hub.load_state_dict_from_url(
+            "https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth",
+            check_hash=False
+        )
+        model_static.load_state_dict(state_dict)
         model_static.classifier[1] = nn.Linear(model_static.classifier[1].in_features, 2)
         model_static.load_state_dict(model_cpu.state_dict())
 
